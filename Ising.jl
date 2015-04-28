@@ -1,11 +1,11 @@
 module Ising
 
-lalalalalala
+export Estado
 
-export MyType
-
-type MyType
-    x
+type Estado
+    sigma::Array{Float64,2}
+    E::Real
+    M::Real
 end
 
 function conf_aleatoria(n::Int64,m::Int64,p=0.5)
