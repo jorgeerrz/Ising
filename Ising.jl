@@ -85,8 +85,8 @@ end
 
 function magnetizaciones_t(beta,n::Int64,m::Int64,t)
     out=zeros(t+1)
-    config_old=conf_aleatoria(n,m)
-    out[1]=magnetizacion(config_old)
+    config=conf_aleatoria(n,m)
+    out[1]=sum(config)
     for tiempo in 1:t
         i,j=rand(1:n),rand(1:m)
         if aceptar(config,beta,n,m,i,j)<1
