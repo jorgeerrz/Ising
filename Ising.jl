@@ -42,14 +42,13 @@ function α(configuracion::Array{Float64,2},beta::Float64,n::Int64,m::Int64,i::I
     end
 end
 
-function aceptar(configuracion::Array{Float64,2},beta::Float64,n::Int64,m::Int64)
-    i,j=rand(1:n),rand(1:m)
+function aceptar(configuracion::Array{Float64,2},beta::Float64,n::Int64,m::Int64,i::Int64,j::Int64)
     alpha=α(configuracion,beta,n,m,i,j)
     #@show alpha
     if rand()<=alpha
-        return flip_one(configuracion,i,j)
+        return 1
     else
-        return configuracion
+        return 0
     end
 end
 
@@ -66,12 +65,16 @@ end
 
 function energias_t(beta,n::Int64,m::Int64,t=100)
     out=zeros(t+1)
-    config_old=conf_aleatoria(n,m)
-    out[1]=energia_total(config_old,n,m)
+    config=conf_aleatoria(n,m)
+    out[1]=energia_total(config,n,m)
     for tiempo in 1:t
-        config_new=aceptar(config_old,beta,n,m)
-        out[tiempo+1]=energia_total(config_new,n,m)
-        config_old,config_new=config_new,config_old
+        i,j=rand(1:n),rand(1:m)
+        if aceptar(config,beta,n,m,i,j)<1
+        out[tiempo+1]=out[tiempo]
+        else
+        out[tiempo+1]=out[tiempo]-2*energia_ij(config,n,m,i,j)
+        config=flip_one(config,i,j)
+        end
     end
     out
 end
@@ -81,9 +84,13 @@ function magnetizaciones_t(beta,n::Int64,m::Int64,t)
     config_old=conf_aleatoria(n,m)
     out[1]=magnetizacion(config_old)
     for tiempo in 1:t
-        config_new=aceptar(config_old,beta,n,m)
-        out[tiempo+1]=magnetizacion(config_new)
-        config_old,config_new=config_new,config_old
+        i,j=rand(1:n),rand(1:m)
+        if aceptar(config,beta,n,m,i,j)<1
+        out[tiempo+1]=out[tiempo]
+        else
+        out[tiempo+1]=out[tiempo]-2*config[i,j]
+        config=flip_one(config,i,j)
+        end
     end
     out
 end
