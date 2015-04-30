@@ -1,6 +1,7 @@
 module Ising
 
 export Estado
+export montecarlo_config_run, microestados, conf_aleatoria
 
 type Estado
     sigma::Array{Float64,2}
@@ -8,8 +9,8 @@ type Estado
     M::Real
 end
 
-function conf_aleatoria(n::Int64,m::Int64,p=0.5)
-    configuracion=ones(n,m)
+function conf_aleatoria(n::Int,m::Int,p=0.5)
+    configuracion=ones(Int,(n,m))
     for i in 1:n
         for j in 1:m
             if rand()<=p
@@ -20,37 +21,11 @@ function conf_aleatoria(n::Int64,m::Int64,p=0.5)
     return configuracion
 end
 
-function flip_one(A::Array{Float64,2},i::Int64,j::Int64)
+conf_aleatoria(L::Int) = conf_aleatoria(L,L)
+
+function flip_one!(A::Array{Float64,2},i::Int,j::Int)
     A[i,j]*=-1
     A
-end
-
-function energia_ij(configuracion::Array{Float64,2},n::Int64,m::Int64,i::Int64,j::Int64)
-    -configuracion[i,j]*(configuracion[mod1(i-1,n),j]+configuracion[mod1(i+1,n),j]+
-        configuracion[i,mod1(j-1,m)]+configuracion[i,mod1(j+1,m)])/2
-end
-
-function α(configuracion::Array{Float64,2},beta::Float64,n::Int64,m::Int64,i::Int64,j::Int64)
-    energia = energia_ij(configuracion,n,m,i,j)
-    if energia <=0.0
-        delta_energia=-2*energia
-        return e^(-beta*delta_energia)
-    else
-        return 1.0
-        #energia_ij(configuracion_new,n,m,i,j)-energia_ij(configuracion,n,m,i,j)
-        #min(1,e^(-beta*delta_energia))
-    end
-end
-
-function aceptar(configuracion::Array{Float64,2},beta::Float64,n::Int64,m::Int64)
-    i,j=rand(1:n),rand(1:m)
-    alpha=α(configuracion,beta,n,m,i,j)
-    #@show alpha
-    if rand()<=alpha
-        return flip_one(configuracion,i,j)
-    else
-        return configuracion
-    end
 end
 
 function energia_total(configuracion::Array{Float64,2},n::Int64,m::Int64)
@@ -64,11 +39,44 @@ function energia_total(configuracion::Array{Float64,2},n::Int64,m::Int64)
     out/2
 end
 
-function energias_t(beta,n::Int64,m::Int64,t=100)
-    out=zeros(t+1)
+function energia_ij(configuracion::Array{Float64,2},n::Int,m::Int,i::Int,j::Int)
+    -configuracion[i,j]*(configuracion[mod1(i-1,n),j]+configuracion[mod1(i+1,n),j]+
+        configuracion[i,mod1(j-1,m)]+configuracion[i,mod1(j+1,m)])/2
+end
+
+function α(configuracion::Array{Float64,2},β::Float64,n::Int,m::Int,i::Int,j::Int)
+    energia = energia_ij(configuracion,n,m,i,j)
+    ΔE = -2*energia
+
+    min(1., e^(-β*ΔE))
+end
+
+function aceptar(configuracion::Array{Float64,2},β::Float64,n::Int,m::Int)
+    i,j=rand(1:n, 2),rand(1:m)  #Es más rápido que rand(1:n, 2)
+    if rand()<=α(configuracion,β,n,m,i,j)
+        return flip_one!(configuracion,i,j)
+    else
+        return configuracion
+    end
+end
+
+function montecarlo_config_run(n::Int,m::Int,steps::Int,T)
+    β= 1/T
+    S=conf_aleatoria(n,m)
+
+    for i in 1:steps
+        aceptar(S,β,n,m)
+    end
+
+    S
+end
+
+
+function energias_t(beta,n::Int,m::Int,steps=100)
+    out=zeros(steps+1)
     config_old=conf_aleatoria(n,m)
     out[1]=energia_total(config_old,n,m)
-    for tiempo in 1:t
+    for tiempo in 1:steps
         config_new=aceptar(config_old,beta,n,m)
         out[tiempo+1]=energia_total(config_new,n,m)
         config_old,config_new=config_new,config_old
@@ -76,11 +84,11 @@ function energias_t(beta,n::Int64,m::Int64,t=100)
     out
 end
 
-function magnetizaciones_t(beta,n::Int64,m::Int64,t)
-    out=zeros(t+1)
+function magnetizaciones_t(beta,n::Int,m::Int,steps)
+    out=zeros(steps+1)
     config_old=conf_aleatoria(n,m)
     out[1]=magnetizacion(config_old)
-    for tiempo in 1:t
+    for tiempo in 1:steps
         config_new=aceptar(config_old,beta,n,m)
         out[tiempo+1]=magnetizacion(config_new)
         config_old,config_new=config_new,config_old
