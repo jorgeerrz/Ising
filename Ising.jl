@@ -1,6 +1,10 @@
 module Ising
 
 export Estado
+export energias_t
+export magnetizaciones_t
+export energiapromedio_beta
+export magnetizacionpromedio_beta
 
 type Estado
     sigma::Array{Float64,2}
@@ -95,18 +99,20 @@ function magnetizaciones_t(beta,n::Int64,m::Int64,t)
     out
 end
 
-function energiapromedio_beta(n::Int64,m::Int64)
-    out=zeros(51)
-    for i in 1:51
-        out[i]=mean(energias_t((i-1)*0.1,n,m,100_000))
+function energiapromedio_beta(betamax::Float64,n::Int64,m::Int64,t::Float64)
+    max=betamax*10+1
+    out=zeros(max)
+    for i in 1:max
+        out[i]=mean(energias_t((i-1)*0.1,n,m,t))
     end
     out
 end
 
-function magnetizacionpromedio_beta(n::Int64,m::Int64)
-    out=zeros(51)
-    for i in 1:51
-        out[i]=mean(magnetizaciones_t((i-1)*0.1,n,m,100_000))
+function magnetizacionpromedio_beta(betamax::Float64,n::Int64,m::Int64,t::Float64)
+    max=betamax*10+1
+    out=zeros(max)
+    for i in 1:max
+        out[i]=mean(magnetizaciones_t((i-1)*0.1,n,m,t))
     end
     out
 end
