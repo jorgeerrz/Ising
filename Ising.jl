@@ -1,75 +1,83 @@
 module Ising
 
-export Estado
-export montecarlo_config_run, microestados, conf_aleatoria
+export MicroEstado, edo_aleatorio, voltea_espin!, energia_total, energia_ij
+export propone_cambio, paso_monte_carlo, simulacion_monte_carlo
+import Base.show
 
-type Estado
-    sigma::Array{Float64,2}
-    E::Real
-    M::Real
+type MicroEstado
+    σ::Array{Int,2}
+	#Vamos a suponer que todas las configuraciones son cuadradas
+    L::Int
 end
 
-function conf_aleatoria(n::Int,m::Int,p=0.5)
-    configuracion=ones(Int,(n,m))
-    for i in 1:n
-        for j in 1:m
-            if rand()<=p
-                configuracion[i,j]=-1
-            end
+show(io::IO, m::MicroEstado) = print(io, m.σ)
+
+function edo_aleatorio(L::Int)
+    σ = ones(Int, (L,L))
+    for i in 1:L^2
+        if rand() <= 0.5
+			σ[i] = -1
         end
-    end
-    return configuracion
+	end
+    MicroEstado(σ,L)
 end
 
-conf_aleatoria(L::Int) = conf_aleatoria(L,L)
-
-function flip_one!(A::Array{Float64,2},i::Int,j::Int)
-    A[i,j]*=-1
-    A
+function voltea_espin!(m::MicroEstado, i::Int, j::Int)
+    m.σ[i,j] *= -1
 end
 
-function energia_total(configuracion::Array{Float64,2},n::Int64,m::Int64)
-    out=0.0
-    for i in 1:n
-        for j in 1:m
-            out+=-configuracion[i,j]*(configuracion[mod1(i-1,n),j]+configuracion[mod1(i+1,n),j]+
-            configuracion[i,mod1(j-1,m)]+configuracion[i,mod1(j+1,m)])
-        end
+function energia_total(m::MicroEstado)
+	out = 0.
+    for i in 1:m.L, j in m.L
+		out -= m.σ[i,j]*(m.σ[mod1(i-1,L),j] + m.σ[mod1(i+1,L),j] + m.σ[i,mod1(j-1,L)] + m.σ[i,mod1(j+1,L)])
     end
     out/2
 end
 
-function energia_ij(configuracion::Array{Float64,2},n::Int,m::Int,i::Int,j::Int)
-    -configuracion[i,j]*(configuracion[mod1(i-1,n),j]+configuracion[mod1(i+1,n),j]+
-        configuracion[i,mod1(j-1,m)]+configuracion[i,mod1(j+1,m)])/2
+function energia_ij(m::MicroEstado, i::Int, j::Int)
+	- m.σ[i,j]*(m.σ[mod1(i-1,L),j] + m.σ[mod1(i+1,L),j] + m.σ[i,mod1(j-1,L)] + m.σ[i,mod1(j+1,L)])
 end
 
-function α(configuracion::Array{Float64,2},β::Float64,n::Int,m::Int,i::Int,j::Int)
-    energia = energia_ij(configuracion,n,m,i,j)
-    ΔE = -2*energia
+function propone_cambio(m::MicroEstado, β::Float64)
+    i, j = rand(1:m.L), rand(1:m.L)  #Es más rápido que rand(1:m.L, 2)
+	ΔE = -2*energia_ij(m, i, j)
 
-    min(1., e^(-β*ΔE))
+	ΔE, i, j
 end
 
-function aceptar(configuracion::Array{Float64,2},β::Float64,n::Int,m::Int)
-    i,j=rand(1:n, 2),rand(1:m)  #Es más rápido que rand(1:n, 2)
-    if rand()<=α(configuracion,β,n,m,i,j)
-        return flip_one!(configuracion,i,j)
+##VA A REGRESAR A CASA PASO EL ESTADO (ARAMIS) O NO (NACHO)?
+
+function paso_monte_carlo(m::MicroEstado, β::Float64)
+	ΔE, i, j = propone_cambio(m, β)
+
+	#El parámetro 	de aceptación
+	α = min(1., e^(-β*ΔE))
+
+    if rand() < α
+        voltea_espin!(m, i, j)
+        return ΔE
     else
-        return configuracion
+        return 0
     end
 end
 
-function montecarlo_config_run(n::Int,m::Int,steps::Int,T)
-    β= 1/T
-    S=conf_aleatoria(n,m)
+function simulacion_monte_carlo(L::Int, T::Float64, num_pasos::Int)
+	β = 1/T
+	m = edo_aleatorio(L)
 
-    for i in 1:steps
-        aceptar(S,β,n,m)
-    end
+	for i in 1:num_pasos
+		paso_monte_carlo(m,β)
+	end
 
-    S
+	m
 end
+
+
+
+
+
+
+
 
 
 function energias_t(beta,n::Int,m::Int,steps=100)
