@@ -99,20 +99,22 @@ function magnetizaciones_t(beta,n::Int64,m::Int64,t)
     out
 end
 
-function energiapromedio_beta(betamax::Float64,n::Int64,m::Int64,t::Float64)
-    max=betamax*10+1
-    out=zeros(max)
-    for i in 1:max
-        out[i]=mean(energias_t((i-1)*0.1,n,m,t))
+function energiapromedio_temp(temp_max::Float64,n::Int64,m::Int64,t::Float64,paso::Float64=0.1)
+    temperaturas=[0:paso:temp_max]
+    maximo=length(temperaturas)
+    out=zeros(maximo)
+    for i in 1:maximo
+        out[i]=mean(energias_t(1/temperaturas[i],n,m,t))
     end
     out
 end
 
-function magnetizacionpromedio_beta(betamax::Float64,n::Int64,m::Int64,t::Float64)
-    max=betamax*10+1
-    out=zeros(max)
-    for i in 1:max
-        out[i]=mean(magnetizaciones_t((i-1)*0.1,n,m,t))
+function magnetizacionpromedio_temp(temp_max::Float64,n::Int64,m::Int64,t::Float64,paso::Float64=0.1)
+    temperaturas=[0:paso:temp_max]
+    maximo=length(temperaturas)
+    out=zeros(maximo)
+    for i in 1:maximo
+        out[i]=mean(magnetizaciones_t(1/temperaturas[i],n,m,t))
     end
     out
 end
