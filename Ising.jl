@@ -1,7 +1,7 @@
 module Ising
 
-export MicroEstado, edo_aleatorio, simulacion_montecarlo, montecarlo_energia, montecarlo_magnetizacion
-# export voltea_espin!, energia_total, energia_ij, propone_cambio, paso_montecarlo
+export MicroEstado, edo_aleatorio, simulacion_montecarlo, montecarlo_energia, monte
+export voltea_espin!, energia_total, energia_ij, propone_cambio, paso_montecarlo
 import Base.show
 
 type MicroEstado
@@ -77,7 +77,7 @@ function montecarlo_energia(L::Int, T::Float64, num_pasos::Int)
 	m = edo_aleatorio(L)
 
 	out = [energia_total(m)]
-    sizehint(E, num_pasos)
+    sizehint(out, num_pasos)
 
     for i in 1:num_pasos-1
         ΔE = paso_montecarlo(m, β)
